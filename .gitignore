@@ -1,0 +1,13 @@
+.gradle
+.intellijPlatform
+.kotlin
+.run
+.idea
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+/.idea
+/.run
+gradle/wrapper/gradle-wrapper.jar
