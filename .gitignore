@@ -11,3 +11,4 @@
 /.idea
 /.run
 gradle/wrapper/gradle-wrapper.jar
+build
