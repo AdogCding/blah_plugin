@@ -5,12 +5,10 @@ import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
-import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiExpressionList
 import com.intellij.psi.PsiLiteralExpression
-import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
@@ -74,5 +72,10 @@ class MybatisSqlMarkProvider: RelatedItemLineMarkerProvider() {
             true
         }, scope, sqlId, UsageSearchContext.IN_STRINGS, true)
         return res
+    }
+
+
+    fun checkIsExprSqlUsage(expr: PsiExpression): Boolean {
+        return false
     }
 }

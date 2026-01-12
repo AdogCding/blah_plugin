@@ -35,4 +35,12 @@
                 displayName="MyBatis Helper"/>
         <codeInsight.lineMarkerProvider language="XML" implementationClass="org.gcb.blah.MybatisSqlMarkProvider"/>
     </extensions>
+    <actions>
+        <action id="org.gcb.blah.RefreshMybatisMarkerAction"
+                class="org.gcb.blah.RefreshMybatisMarkerAction"
+                text="Refresh MyBatis Markers"
+                description="Manually triggers a re-scan of MyBatis mappers">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
 </idea-plugin>
