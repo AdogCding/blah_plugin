@@ -44,6 +44,14 @@ class MybatisSqlMarkProvider: RelatedItemLineMarkerProvider() {
         result.add(iconBuilder.createLineMarkerInfo(element))
     }
 
+    /**
+     * 根据字符串找到sqlId的使用者
+     * 1. sqlId出现在一个函数调用中
+     * e.g. DBUtils.selectList(SQL_NS + "sqlId", ..)
+     * 2. sqlId出现在一个常量的赋值语句中
+     * e.g. private static final String SQL_ID = SQL_NS + "sqlId"
+     *      DBUtils.selectList(SQL_ID, ...)
+     */
     fun findMethod(project: Project, targetClassName:String, sqlId: String):List<PsiElement> {
         val res = mutableListOf<PsiElement>()
         val scope =  GlobalSearchScope.allScope(project)
