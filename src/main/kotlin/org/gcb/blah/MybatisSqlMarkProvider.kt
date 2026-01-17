@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.JavaConstantExpressionEvaluator
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
@@ -125,7 +126,13 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         val sqlIdField = PsiTreeUtil.getParentOfType(binaryExpression, PsiField::class.java)
         if (sqlIdField != null) {
             val query = ReferencesSearch.search(sqlIdField)
-            query.findAll()
+            val queryRes= query.findAll()
+            queryRes.forEach { psiRef ->
+                if (psiRef !is PsiReferenceExpression) {
+                    return@forEach
+                }
+
+            }
         }
         val binaryExprEvalRes = JavaConstantExpressionEvaluator.computeConstantExpression(binaryExpression, false)
         if (binaryExprEvalRes != sqlId) {
