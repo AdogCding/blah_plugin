@@ -6,9 +6,11 @@ import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiBinaryExpression
+import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiLiteralExpression
+import com.intellij.psi.PsiLocalVariable
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.JavaConstantExpressionEvaluator
@@ -63,11 +65,14 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
 
     private fun findSqlId(mybatisDmlTag: XmlTag): String? {
         val sqlId = mybatisDmlTag.getAttributeValue("id")
-        val ns = mybatisDmlTag.parent?.run { if (this is XmlTag && this.name == "mapper") return this.getAttributeValue("namespace") }
-        if (ns == null) {
+        if (mybatisDmlTag.parent == null || mybatisDmlTag.parent !is XmlTag) {
             return null
         }
-        return "${ns}.${sqlId}"
+        val mapperTag = mybatisDmlTag.parent as XmlTag
+        if (mapperTag.name != "mapper") {
+            return null
+        }
+        return "${mapperTag.getAttributeValue("namespace")}.${sqlId}"
     }
 
     private fun findLiteralAndItsUsage(
@@ -75,7 +80,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         toolClassName: String,
         sqlId: String
     ): List<PsiMethodCallExpression> {
-        TODO("Not yet implemented")
+        return listOf()
     }
 
     /**
@@ -118,31 +123,54 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         toolClassName: String,
         sqlId: String
     ): List<PsiMethodCallExpression> {
+        val res = mutableListOf<PsiMethodCallExpression>()
         // check if it is a binary expression
-        val binaryExpression = PsiTreeUtil.getParentOfType(literal, PsiBinaryExpression::class.java)
-        if (binaryExpression != null) {
-            return emptyList()
-        }
-        // if it is class field
-        val sqlIdField = PsiTreeUtil.getParentOfType(binaryExpression, PsiField::class.java)
-        if (sqlIdField != null) {
-            val query = ReferencesSearch.search(sqlIdField)
-            val queryRes= query.findAll()
-            queryRes.forEach { psiRef ->
-                if (psiRef !is PsiReferenceExpression) {
-                    return@forEach
-                }
-
-            }
-        }
+        val binaryExpression =
+            PsiTreeUtil.getParentOfType(literal, PsiBinaryExpression::class.java) ?: return emptyList()
         val binaryExprEvalRes = JavaConstantExpressionEvaluator.computeConstantExpression(binaryExpression, false)
         if (binaryExprEvalRes != sqlId) {
             return emptyList()
         }
+        val sqlFieldUsages = getSqlFieldUsages(binaryExpression, toolClassName)
+        val localVariableUsages = getLocalVariableUsages(binaryExpression, toolClassName);
+        val directUsages = getDirectUsages(binaryExpression, toolClassName);
+        res.addAll(sqlFieldUsages)
+        res.addAll(localVariableUsages)
+        res.addAll(directUsages);
         return emptyList();
     }
 
-    private fun getSqlField() {
+    private fun getDirectUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val methodCall = PsiTreeUtil.getParentOfType(binaryExpression, PsiMethodCallExpression::class.java)
+        if (methodCall?.resolveMethod()?.containingClass?.qualifiedName == toolClassName) {
+            return listOf(methodCall)
+        }
+        return emptyList()
+    }
 
+    private fun getLocalVariableUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val declareStatement = PsiTreeUtil.getParentOfType(binaryExpression, PsiDeclarationStatement::class.java) ?: return emptyList()
+        val localVariable = PsiTreeUtil.getChildOfType(declareStatement, PsiLocalVariable::class.java) ?: return emptyList()
+        return getBinaryExpressionRefByToolClass(localVariable, toolClassName)
+    }
+
+    private fun getBinaryExpressionRefByToolClass(base: PsiElement, toolClassName: String): List<PsiMethodCallExpression> {
+        val queryResult = ReferencesSearch.search(base)
+        val res = mutableListOf<PsiMethodCallExpression>();
+        queryResult.forEach { psiRef ->
+            if (psiRef !is PsiReferenceExpression) {
+                return@forEach
+            }
+            val methodCall = PsiTreeUtil.getParentOfType(psiRef, PsiMethodCallExpression::class.java)
+            if (methodCall?.resolveMethod()?.containingClass?.qualifiedName == toolClassName) {
+                res.add(methodCall)
+            }
+        }
+        return res
+    }
+
+    private fun getSqlFieldUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val sqlIdField = PsiTreeUtil.getParentOfType(binaryExpression, PsiField::class.java) ?: return emptyList()
+        return getBinaryExpressionRefByToolClass(sqlIdField, toolClassName)
     }
 }
