@@ -123,6 +123,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         if (binaryExpression != null) {
             return emptyList()
         }
+        // if it is class field
         val sqlIdField = PsiTreeUtil.getParentOfType(binaryExpression, PsiField::class.java)
         if (sqlIdField != null) {
             val query = ReferencesSearch.search(sqlIdField)
@@ -141,4 +142,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return emptyList();
     }
 
+    private fun getSqlField() {
+
+    }
 }
