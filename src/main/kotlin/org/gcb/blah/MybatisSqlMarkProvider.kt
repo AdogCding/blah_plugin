@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiBinaryExpression
 import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiLocalVariable
@@ -19,7 +20,6 @@ import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.search.UsageSearchContext
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.xml.XmlTag
 
 class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
@@ -82,7 +82,14 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         toolClassName: String,
         sqlId: MyBatisDmlSql
     ): List<PsiMethodCallExpression> {
-        return listOf()
+        if (literal.value != sqlId.toSqlString()) {
+            return emptyList()
+        }
+        val res = mutableListOf<PsiMethodCallExpression>()
+        res.addAll(getDirectUsages(literal, toolClassName))
+        res.addAll(getLocalVariableUsages(literal, toolClassName))
+        res.addAll(getSqlFieldUsages(literal, toolClassName))
+        return res
     }
 
     /**
@@ -107,7 +114,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                 return@processElementsWithWord true
             }
             val literal = psiEl.parent as PsiLiteralExpression
-            val trivialLiteralAndItsUsages = findLiteralAndItsUsage(literal, toolClassName, sqlId);
+            val trivialLiteralAndItsUsages = findLiteralAndItsUsage(literal, toolClassName, sqlId)
             if (trivialLiteralAndItsUsages.isNotEmpty()) {
                 res.addAll(trivialLiteralAndItsUsages)
             }
@@ -134,31 +141,31 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             return emptyList()
         }
         val sqlFieldUsages = getSqlFieldUsages(binaryExpression, toolClassName)
-        val localVariableUsages = getLocalVariableUsages(binaryExpression, toolClassName);
-        val directUsages = getDirectUsages(binaryExpression, toolClassName);
+        val localVariableUsages = getLocalVariableUsages(binaryExpression, toolClassName)
+        val directUsages = getDirectUsages(binaryExpression, toolClassName)
         res.addAll(sqlFieldUsages)
         res.addAll(localVariableUsages)
-        res.addAll(directUsages);
-        return res;
+        res.addAll(directUsages)
+        return res
     }
 
-    private fun getDirectUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
-        val methodCall = PsiTreeUtil.getParentOfType(binaryExpression, PsiMethodCallExpression::class.java)
+    private fun getDirectUsages(expression: PsiExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val methodCall = PsiTreeUtil.getParentOfType(expression, PsiMethodCallExpression::class.java)
         if (methodCall?.resolveMethod()?.containingClass?.qualifiedName == toolClassName) {
             return listOf(methodCall)
         }
         return emptyList()
     }
 
-    private fun getLocalVariableUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
-        val declareStatement = PsiTreeUtil.getParentOfType(binaryExpression, PsiDeclarationStatement::class.java) ?: return emptyList()
+    private fun getLocalVariableUsages(expression: PsiExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val declareStatement = PsiTreeUtil.getParentOfType(expression, PsiDeclarationStatement::class.java) ?: return emptyList()
         val localVariable = PsiTreeUtil.getChildOfType(declareStatement, PsiLocalVariable::class.java) ?: return emptyList()
-        return getBinaryExpressionRefByToolClass(localVariable, toolClassName)
+        return getExpressionRefByToolClass(localVariable, toolClassName)
     }
 
-    private fun getBinaryExpressionRefByToolClass(base: PsiElement, toolClassName: String): List<PsiMethodCallExpression> {
+    private fun getExpressionRefByToolClass(base: PsiElement, toolClassName: String): List<PsiMethodCallExpression> {
         val queryResult = ReferencesSearch.search(base)
-        val res = mutableListOf<PsiMethodCallExpression>();
+        val res = mutableListOf<PsiMethodCallExpression>()
         queryResult.forEach { psiRef ->
             if (psiRef !is PsiReferenceExpression) {
                 return@forEach
@@ -171,8 +178,8 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return res
     }
 
-    private fun getSqlFieldUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
-        val sqlIdField = PsiTreeUtil.getParentOfType(binaryExpression, PsiField::class.java) ?: return emptyList()
-        return getBinaryExpressionRefByToolClass(sqlIdField, toolClassName)
+    private fun getSqlFieldUsages(expression: PsiExpression, toolClassName: String): List<PsiMethodCallExpression> {
+        val sqlIdField = PsiTreeUtil.getParentOfType(expression, PsiField::class.java) ?: return emptyList()
+        return getExpressionRefByToolClass(sqlIdField, toolClassName)
     }
 }
