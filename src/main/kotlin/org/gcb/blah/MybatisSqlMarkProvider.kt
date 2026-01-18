@@ -30,10 +30,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         if (!element.isMybatisDmlTag()) {
             return
         }
-        val sqlId = findSqlId(element as XmlTag)
-        if (sqlId.isNullOrBlank()) {
-            return
-        }
+        val sqlId = findSqlId(element as XmlTag) ?: return
         val project = element.project
         // 工具类的类名
         val toolClassName = PluginSettingState.getInstance(project).toolClassName
@@ -63,22 +60,27 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
     }
 
 
-    private fun findSqlId(mybatisDmlTag: XmlTag): String? {
+    private fun findSqlId(mybatisDmlTag: XmlTag): MyBatisDmlSql? {
         val sqlId = mybatisDmlTag.getAttributeValue("id")
         if (mybatisDmlTag.parent == null || mybatisDmlTag.parent !is XmlTag) {
             return null
         }
         val mapperTag = mybatisDmlTag.parent as XmlTag
-        if (mapperTag.name != "mapper") {
+
+        if (mapperTag.name != "mapper" || mapperTag.getAttributeValue("namespace").isNullOrBlank()) {
             return null
         }
-        return "${mapperTag.getAttributeValue("namespace")}.${sqlId}"
+        val ns = mapperTag.getAttributeValue("namespace")
+        if (sqlId.isNullOrBlank() || ns.isNullOrBlank()) {
+            return null
+        }
+        return MyBatisDmlSql(sqlId, ns)
     }
 
     private fun findLiteralAndItsUsage(
         literal: PsiLiteralExpression,
         toolClassName: String,
-        sqlId: String
+        sqlId: MyBatisDmlSql
     ): List<PsiMethodCallExpression> {
         return listOf()
     }
@@ -96,7 +98,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
      *  e.g. private static final String SQL_ID = "sn+sqlId"
      *       DBUtils.selectList(SQL_ID, ...)
      */
-    fun findMethod(project: Project, toolClassName: String, sqlId: String): List<PsiElement> {
+    fun findMethod(project: Project, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiElement> {
         val res = mutableListOf<PsiElement>()
         val scope = GlobalSearchScope.allScope(project)
         val psiSearchHelper = PsiSearchHelper.getInstance(project)
@@ -114,21 +116,21 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                 res.addAll(binaryExpressionAndItsUsages)
             }
             true
-        }, scope, sqlId, UsageSearchContext.IN_STRINGS, true)
+        }, scope, sqlId.sqlId, UsageSearchContext.IN_STRINGS, true)
         return res
     }
 
     private fun findBinaryExpressionAndItsUsageWhenLiteralRefSqlId(
         literal: PsiLiteralExpression,
         toolClassName: String,
-        sqlId: String
+        sqlId: MyBatisDmlSql
     ): List<PsiMethodCallExpression> {
         val res = mutableListOf<PsiMethodCallExpression>()
         // check if it is a binary expression
         val binaryExpression =
             PsiTreeUtil.getParentOfType(literal, PsiBinaryExpression::class.java) ?: return emptyList()
         val binaryExprEvalRes = JavaConstantExpressionEvaluator.computeConstantExpression(binaryExpression, false)
-        if (binaryExprEvalRes != sqlId) {
+        if (binaryExprEvalRes != sqlId.toSqlString()) {
             return emptyList()
         }
         val sqlFieldUsages = getSqlFieldUsages(binaryExpression, toolClassName)
@@ -137,7 +139,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         res.addAll(sqlFieldUsages)
         res.addAll(localVariableUsages)
         res.addAll(directUsages);
-        return emptyList();
+        return res;
     }
 
     private fun getDirectUsages(binaryExpression: PsiBinaryExpression, toolClassName: String): List<PsiMethodCallExpression> {
