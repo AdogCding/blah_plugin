@@ -1,4 +1,4 @@
-package org.gcb.blah
+package org.gcb.blah.mybatis
 
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
