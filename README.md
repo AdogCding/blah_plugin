@@ -8,7 +8,9 @@ public List<T> getXxxx() {
     DBUtils.selectList("testMapper.selectId", param);
 }
 ```
-反向找到使用了这个sql的DBUtils
+在Mybatis Helper中配置项目的数据库工具类
+
+可以找到项目中引用该sqlId的地方
 ```xml
 <mapper namespace="testMapper" >
     <select id="selectById">
