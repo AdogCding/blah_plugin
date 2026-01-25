@@ -4,6 +4,6 @@ data class MyBatisDmlSql(val sqlId: String, val namespace: String) {
 
 }
 
-fun MyBatisDmlSql.toSqlString(): String {
+fun MyBatisDmlSql.toFullName(): String {
     return "${this.namespace}.${this.sqlId}"
 }

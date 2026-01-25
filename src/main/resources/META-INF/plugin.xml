@@ -34,6 +34,7 @@
                 id="org.gcb.blah.mybatis.PluginSettingsConfigurable"
                 displayName="MyBatis Helper"/>
         <codeInsight.lineMarkerProvider language="XML" implementationClass="org.gcb.blah.mybatis.MybatisSqlMarkProvider"/>
+        <notificationGroup id="MyBatisPlugin.Notification" displayType="BALLOON"/>
     </extensions>
     <actions>
         <action id="org.gcb.blah.mybatis.RefreshMybatisMarkerAction"

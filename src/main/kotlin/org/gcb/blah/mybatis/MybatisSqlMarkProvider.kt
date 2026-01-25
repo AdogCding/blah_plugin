@@ -1,10 +1,18 @@
 package org.gcb.blah.mybatis
 
+import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
-import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PsiElementListCellRenderer
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.editor.markup.GutterIconRenderer
+import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiBinaryExpression
 import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
@@ -21,6 +29,9 @@ import com.intellij.psi.search.UsageSearchContext
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
+import com.intellij.ui.awt.RelativePoint
+import java.awt.event.MouseEvent
+import kotlin.jvm.java
 
 class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
     override fun collectNavigationMarkers(
@@ -30,22 +41,65 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         if (!element.isMybatisDmlTag()) {
             return
         }
-        val sqlId = findSqlId(element as XmlTag) ?: return
-        val project = element.project
-        // 工具类的类名
-        val toolClassName = PluginSettingState.getInstance(project).toolClassName
-        if (toolClassName.isEmpty()) {
-            return
+        val sql = findSqlId(element as XmlTag) ?: return
+        val marker = createMyBatisXmlLineMarkerFor(element, sql)
+        result.add(marker)
+    }
+
+    private fun createMyBatisXmlLineMarkerFor(element: XmlTag, myBatisDmlSql: MyBatisDmlSql): RelatedItemLineMarkerInfo<PsiElement> {
+        return RelatedItemLineMarkerInfo(element,
+            element.textRange,
+            AllIcons.Gutter.ImplementedMethod,
+            { "点击查找 Java 调用处"},
+            MyBatisHelperNavigationHandler(myBatisDmlSql),
+            GutterIconRenderer.Alignment.RIGHT,
+            { emptyList() }
+            )
+    }
+
+    private inner class MyBatisHelperNavigationHandler(val myBatisDmlSql: MyBatisDmlSql): GutterIconNavigationHandler<PsiElement> {
+        override fun navigate(p0: MouseEvent?, element: PsiElement?) {
+            if (element == null) {
+                return
+            }
+            val project = element.project
+            val toolClassName = PluginSettingState.getInstance(project).toolClassName
+            if (toolClassName.isBlank()) {
+                NotificationGroupManager.getInstance()
+                    .getNotificationGroup("MyBatisPlugin.Notification") // 对应 xml 里的 id
+                    .createNotification("配置缺失", "请先配置 MyBatis 工具类路径", NotificationType.WARNING)
+                    .addAction(
+                        NotificationAction.createSimple("去设置") {
+                            ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginSettingsConfigurable::class.java)
+                        }
+                    )
+                    .notify(project)
+                return
+            }
+            val targets = findMethod(project, toolClassName, myBatisDmlSql)
+            if (targets.isEmpty()) {
+                return
+            }
+            JBPopupFactory.getInstance().createPopupChooserBuilder(targets)
+                .setTitle("Please choose")
+                .setRenderer(object : PsiElementListCellRenderer<PsiElement>() {
+                    override fun getElementText(element: PsiElement): String {
+                        return if (element is XmlTag) {
+                            "1212"
+                        } else {
+                            "12121211"
+                        }
+                    }
+
+                    override fun getContainerText(
+                        p0: PsiElement?,
+                        p1: String?
+                    ): String {
+                        return "1212121"
+                    }
+                }).createPopup().show(RelativePoint(p0!!))
         }
-        val targets = findMethod(project, toolClassName, sqlId)
-        if (targets.isEmpty()) {
-            return
-        }
-        val iconBuilder = NavigationGutterIconBuilder.create(
-            AllIcons.Gutter.ImplementedMethod
-        )
-            .setTargets(targets)
-        result.add(iconBuilder.createLineMarkerInfo(element))
+
     }
 
     private fun PsiElement.isMybatisDmlTag(): Boolean {
@@ -53,10 +107,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             return false
         }
         val tagName = this.name
-        if (tagName !in setOf("select", "insert", "delete", "update")) {
-            return false
-        }
-        return true
+        return tagName in setOf("select", "insert", "delete", "update")
     }
 
 
@@ -82,7 +133,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         toolClassName: String,
         sqlId: MyBatisDmlSql
     ): List<PsiMethodCallExpression> {
-        if (literal.value != sqlId.toSqlString()) {
+        if (literal.value != sqlId.toFullName()) {
             return emptyList()
         }
         val res = mutableListOf<PsiMethodCallExpression>()
@@ -105,7 +156,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
      *  e.g. private static final String SQL_ID = "sn+sqlId"
      *       DBUtils.selectList(SQL_ID, ...)
      */
-    fun findMethod(project: Project, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiElement> {
+    fun findMethod(project: Project, toolClassName: String, myBatisDmlSql: MyBatisDmlSql): List<PsiElement> {
         val res = mutableListOf<PsiElement>()
         val scope = GlobalSearchScope.allScope(project)
         val psiSearchHelper = PsiSearchHelper.getInstance(project)
@@ -114,16 +165,16 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                 return@processElementsWithWord true
             }
             val literal = psiEl.parent as PsiLiteralExpression
-            val trivialLiteralAndItsUsages = findLiteralAndItsUsage(literal, toolClassName, sqlId)
+            val trivialLiteralAndItsUsages = findLiteralAndItsUsage(literal, toolClassName, myBatisDmlSql)
             if (trivialLiteralAndItsUsages.isNotEmpty()) {
                 res.addAll(trivialLiteralAndItsUsages)
             }
-            val binaryExpressionAndItsUsages = findBinaryExpressionAndItsUsageWhenLiteralRefSqlId(literal, toolClassName, sqlId)
+            val binaryExpressionAndItsUsages = findBinaryExpressionAndItsUsageWhenLiteralRefSqlId(literal, toolClassName, myBatisDmlSql)
             if (binaryExpressionAndItsUsages.isNotEmpty()) {
                 res.addAll(binaryExpressionAndItsUsages)
             }
             true
-        }, scope, sqlId.sqlId, UsageSearchContext.IN_STRINGS, true)
+        }, scope, myBatisDmlSql.sqlId, UsageSearchContext.IN_STRINGS, true)
         return res
     }
 
@@ -137,7 +188,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         val binaryExpression =
             PsiTreeUtil.getParentOfType(literal, PsiBinaryExpression::class.java) ?: return emptyList()
         val binaryExprEvalRes = JavaConstantExpressionEvaluator.computeConstantExpression(binaryExpression, false)
-        if (binaryExprEvalRes != sqlId.toSqlString()) {
+        if (binaryExprEvalRes != sqlId.toFullName()) {
             return emptyList()
         }
         val sqlFieldUsages = getSqlFieldUsages(binaryExpression, toolClassName)
