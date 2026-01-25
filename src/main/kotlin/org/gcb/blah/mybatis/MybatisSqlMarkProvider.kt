@@ -3,6 +3,7 @@ package org.gcb.blah.mybatis
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
+import com.intellij.codeInsight.navigation.PsiTargetNavigator
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PsiElementListCellRenderer
 import com.intellij.notification.NotificationAction
@@ -13,6 +14,7 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.NlsSafe
+import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiBinaryExpression
 import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
@@ -30,6 +32,7 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.ui.awt.RelativePoint
+import org.gcb.blah.MyMessageBundle
 import java.awt.event.MouseEvent
 import kotlin.jvm.java
 
@@ -67,7 +70,10 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             if (toolClassName.isBlank()) {
                 NotificationGroupManager.getInstance()
                     .getNotificationGroup("MyBatisPlugin.Notification") // 对应 xml 里的 id
-                    .createNotification("配置缺失", "请先配置 MyBatis 工具类路径", NotificationType.WARNING)
+                    .createNotification(
+                        MyMessageBundle.message("mybatis-helper.notification.title"),
+                        "请先配置 MyBatis 工具类路径",
+                        NotificationType.WARNING)
                     .addAction(
                         NotificationAction.createSimple("去设置") {
                             ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginSettingsConfigurable::class.java)
@@ -80,24 +86,11 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             if (targets.isEmpty()) {
                 return
             }
-            JBPopupFactory.getInstance().createPopupChooserBuilder(targets)
-                .setTitle("Please choose")
-                .setRenderer(object : PsiElementListCellRenderer<PsiElement>() {
-                    override fun getElementText(element: PsiElement): String {
-                        return if (element is XmlTag) {
-                            "1212"
-                        } else {
-                            "12121211"
-                        }
-                    }
-
-                    override fun getContainerText(
-                        p0: PsiElement?,
-                        p1: String?
-                    ): String {
-                        return "1212121"
-                    }
-                }).createPopup().show(RelativePoint(p0!!))
+            PsiTargetNavigator(targets)
+                .createPopup(project, "选择跳转目标") {
+                    element -> (element as NavigatablePsiElement).navigate(true)
+                    true
+                }.show(RelativePoint(p0!!))
         }
 
     }
