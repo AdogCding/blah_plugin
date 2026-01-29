@@ -201,6 +201,11 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return res
     }
 
+
+    private fun findConcatExpressionAndItsUsage(literal: PsiLiteralExpression, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiMethodCallExpression> {
+        return mutableListOf<PsiMethodCallExpression>()
+    }
+
     private fun findBinaryExpressionAndItsUsageWhenLiteralRefSqlId(
         literal: PsiLiteralExpression,
         toolClassName: String,
