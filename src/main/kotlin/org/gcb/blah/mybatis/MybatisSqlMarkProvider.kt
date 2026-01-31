@@ -21,9 +21,9 @@ import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiIdentifier
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiLocalVariable
-import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.JavaConstantExpressionEvaluator
@@ -36,7 +36,6 @@ import com.intellij.psi.xml.XmlTag
 import com.intellij.ui.awt.RelativePoint
 import org.gcb.blah.MyMessageBundle
 import java.awt.event.MouseEvent
-import kotlin.run
 
 class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
     override fun collectNavigationMarkers(
@@ -111,7 +110,8 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                         return
                     }
                     if (foundTargets.size == 1) {
-                        (foundTargets.first() as? NavigatablePsiElement)?.navigate(true) ?: return
+                        (foundTargets.first() as? NavigatablePsiElement)?.navigate(true)
+                        return
                     }
                     PsiTargetNavigator(foundTargets)
                         .createPopup(project, "选择跳转目标") { element ->
@@ -201,7 +201,27 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return res
     }
 
+    private fun evalConcatById(concatIdList: List<PsiIdentifier>): String {
+        for ((idx, item) in concatIdList.withIndex()) {
 
+        }
+        return ""
+    }
+
+
+    private fun isConcatExprEqual(possibleConcatMethodCall: PsiMethodCallExpression): Boolean {
+        val concatIdList = PsiTreeUtil
+            .getChildrenOfType(possibleConcatMethodCall,
+                PsiIdentifier::class.java)?.filter { it.text == "concat" } ?: return false
+        if (concatIdList.isEmpty()) {
+            return false
+        }
+        return false
+    }
+
+    /**
+     * 支持使用String.concat进行字符串拼接
+     */
     private fun findConcatExpressionAndItsUsage(literal: PsiLiteralExpression, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiMethodCallExpression> {
         return mutableListOf<PsiMethodCallExpression>()
     }
