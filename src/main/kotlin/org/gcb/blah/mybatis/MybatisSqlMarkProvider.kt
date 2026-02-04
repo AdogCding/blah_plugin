@@ -196,6 +196,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             if (binaryExpressionAndItsUsages.isNotEmpty()) {
                 res.addAll(binaryExpressionAndItsUsages)
             }
+            val concatExprAndItsUsage = findConcatExpressionAndItsUsage(literal, toolClassName, myBatisDmlSql);
             true
         }, scope, myBatisDmlSql.sqlId, UsageSearchContext.IN_STRINGS, true)
         return res
@@ -209,7 +210,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
     }
 
 
-    private fun isConcatExprEqual(possibleConcatMethodCall: PsiMethodCallExpression): Boolean {
+    private fun isConcatExprEqual(possibleConcatMethodCall: PsiMethodCallExpression, sqlId: MyBatisDmlSql): Boolean {
         val concatIdList = PsiTreeUtil
             .getChildrenOfType(possibleConcatMethodCall,
                 PsiIdentifier::class.java)?.filter { it.text == "concat" } ?: return false
@@ -223,7 +224,18 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
      * 支持使用String.concat进行字符串拼接
      */
     private fun findConcatExpressionAndItsUsage(literal: PsiLiteralExpression, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiMethodCallExpression> {
-        return mutableListOf<PsiMethodCallExpression>()
+        val methodCall = PsiTreeUtil.getParentOfType(literal, PsiMethodCallExpression::class.java) ?: return emptyList()
+        if (!isConcatExprEqual(methodCall, sqlId)) {
+            return emptyList()
+        }
+        val res = mutableListOf<PsiMethodCallExpression>()
+        val localVarUsages = getLocalVariableUsages(literal, toolClassName)
+        val directUsages = getDirectUsages(literal, toolClassName)
+        val sqlFieldUsages = getSqlFieldUsages(literal, toolClassName)
+        res.addAll(localVarUsages)
+        res.addAll(directUsages)
+        res.addAll(sqlFieldUsages)
+        return res
     }
 
     private fun findBinaryExpressionAndItsUsageWhenLiteralRefSqlId(
@@ -256,6 +268,10 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return emptyList()
     }
 
+    /**
+     * String sqlId = "Your Sql Id";
+     * DBUtils.select(sqlId, param);
+     */
     private fun getLocalVariableUsages(
         expression: PsiExpression,
         toolClassName: String
