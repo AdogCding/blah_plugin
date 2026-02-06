@@ -210,12 +210,14 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
     }
 
 
-    private fun isConcatExprEqual(possibleConcatMethodCall: PsiMethodCallExpression, sqlId: MyBatisDmlSql): Boolean {
-        val concatIdList = PsiTreeUtil
-            .getChildrenOfType(possibleConcatMethodCall,
-                PsiIdentifier::class.java)?.filter { it.text == "concat" } ?: return false
-        if (concatIdList.isEmpty()) {
-            return false
+    /**
+     * 检查这个methodCall是不是xxx.concat("sqlId")
+     */
+    private fun isConcatExprEqual(root: PsiMethodCallExpression, sqlId: MyBatisDmlSql): Boolean {
+        val stack = ArrayDeque<String>()
+        var methodCallExpr = root
+        while (methodCallExpr != null) {
+
         }
         return false
     }
