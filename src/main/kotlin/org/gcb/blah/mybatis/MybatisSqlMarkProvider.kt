@@ -217,7 +217,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         val stack = ArrayDeque<String>()
         var methodCallExpr = root
         while (methodCallExpr != null) {
-
+            PsiTreeUtil.getChildOfType(root.argumentList, PsiIdentifier::class.java)
         }
         return false
     }
