@@ -196,7 +196,10 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             if (binaryExpressionAndItsUsages.isNotEmpty()) {
                 res.addAll(binaryExpressionAndItsUsages)
             }
-            val concatExprAndItsUsage = findConcatExpressionAndItsUsage(literal, toolClassName, myBatisDmlSql);
+            val concatExprAndItsUsages = findConcatExpressionAndItsUsage(literal, toolClassName, myBatisDmlSql);
+            if (concatExprAndItsUsages.isNotEmpty()) {
+                res.addAll(concatExprAndItsUsages)
+            }
             true
         }, scope, myBatisDmlSql.sqlId, UsageSearchContext.IN_STRINGS, true)
         return res
@@ -215,25 +218,51 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
      */
     private fun isConcatExprEqual(root: PsiMethodCallExpression, sqlId: MyBatisDmlSql): Boolean {
         val stack = ArrayDeque<String>()
-        var methodCallExpr = root
+        var methodCallExpr: PsiMethodCallExpression? = root
         while (methodCallExpr != null) {
-            PsiTreeUtil.getChildOfType(root.argumentList, PsiIdentifier::class.java)
+            val methodCallId = PsiTreeUtil.getChildOfType(methodCallExpr.methodExpression, PsiIdentifier::class.java)
+            if (methodCallId?.text != "concat") {
+                break
+            }
+            val sqlPart = PsiTreeUtil.getChildOfType(methodCallExpr.argumentList, PsiLiteralExpression::class.java) ?: break
+            stack.addLast(sqlPart.value as String)
+            val nextMethodCall =
+                PsiTreeUtil.getChildOfType(methodCallExpr.methodExpression, PsiMethodCallExpression::class.java)
+            if (nextMethodCall == null) {
+                val caller =
+                    PsiTreeUtil.getChildOfType(methodCallExpr.methodExpression, PsiLiteralExpression::class.java)
+                        ?: break
+                stack.addLast(caller.value as String)
+            }
+            methodCallExpr = nextMethodCall
         }
-        return false
+        if (stack.isEmpty()) {
+            return false
+        }
+        val sqlIdOfConcat = StringBuilder()
+        while (stack.isNotEmpty()) {
+            sqlIdOfConcat.append(stack.removeLast())
+        }
+        return sqlIdOfConcat.toString() == sqlId.toFullName()
     }
 
     /**
      * 支持使用String.concat进行字符串拼接
      */
-    private fun findConcatExpressionAndItsUsage(literal: PsiLiteralExpression, toolClassName: String, sqlId: MyBatisDmlSql): List<PsiMethodCallExpression> {
+    private fun findConcatExpressionAndItsUsage(
+        literal: PsiLiteralExpression,
+        toolClassName: String,
+        sqlId: MyBatisDmlSql
+    ): List<PsiMethodCallExpression> {
         val methodCall = PsiTreeUtil.getParentOfType(literal, PsiMethodCallExpression::class.java) ?: return emptyList()
         if (!isConcatExprEqual(methodCall, sqlId)) {
             return emptyList()
         }
         val res = mutableListOf<PsiMethodCallExpression>()
-        val localVarUsages = getLocalVariableUsages(literal, toolClassName)
-        val directUsages = getDirectUsages(literal, toolClassName)
-        val sqlFieldUsages = getSqlFieldUsages(literal, toolClassName)
+        //位于参数列表的引用，要从方法调用开始寻找
+        val localVarUsages = getLocalVariableUsages(methodCall, toolClassName)
+        val directUsages = getDirectUsages(methodCall, toolClassName)
+        val sqlFieldUsages = getSqlFieldUsages(methodCall, toolClassName)
         res.addAll(localVarUsages)
         res.addAll(directUsages)
         res.addAll(sqlFieldUsages)
