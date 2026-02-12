@@ -25,6 +25,7 @@ import com.intellij.psi.PsiIdentifier
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiLocalVariable
 import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.JavaConstantExpressionEvaluator
 import com.intellij.psi.search.GlobalSearchScope
@@ -91,16 +92,23 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                 return
             }
             ProgressManager.getInstance().run(object : Task.Backgroundable(project, "正在搜索引用", true) {
-                var foundTargets = emptyList<PsiElement>()
+                var foundTargets = mutableListOf<PsiElement>()
                 override fun run(indicator: ProgressIndicator) {
                     indicator.isIndeterminate = true
                     ApplicationManager.getApplication().runReadAction {
                         if (indicator.isCanceled) {
                             return@runReadAction
                         }
-                        foundTargets = findMethod(project, toolClassName, myBatisDmlSql)
+                        val rtpUsages = findMethod(project, toolClassName, myBatisDmlSql)
+                        foundTargets.addAll(rtpUsages)
+                        if (PluginSettingState.getInstance(project).isLooking4NativeMapper) {
+                            val nativeUsages = findNativeMethod(project, myBatisDmlSql)
+                            foundTargets.addAll(nativeUsages)
+                        }
+
                     }
                 }
+
 
                 override fun onSuccess() {
                     if (project.isDisposed) {
@@ -122,6 +130,13 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             })
         }
 
+    }
+
+    fun findNativeMethod(
+        project: Project,
+        myBatisDmlSql: MyBatisDmlSql
+    ): List<PsiElement> {
+        TODO("Not yet implemented")
     }
 
     private fun PsiElement.isMybatisDmlTag(): Boolean {
@@ -205,12 +220,10 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return res
     }
 
-    private fun evalConcatById(concatIdList: List<PsiIdentifier>): String {
-        for ((idx, item) in concatIdList.withIndex()) {
-
-        }
-        return ""
+    fun findAnnotationRef(project: Project, mybatisDmlSql: MyBatisDmlSql): List<PsiReference> {
+        return mutableListOf()
     }
+
 
 
     /**

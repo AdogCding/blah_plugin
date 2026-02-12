@@ -12,6 +12,7 @@ import com.intellij.openapi.components.State
 class PluginSettingState: PersistentStateComponent<PluginSettingState> {
     // 保存工具类的全限定名，例如 "com.example.utils.SqlExecutor"
     var toolClassName: String = ""
+    var isLooking4NativeMapper: Boolean = false
 
     override fun getState(): PluginSettingState {
         return this
@@ -19,6 +20,7 @@ class PluginSettingState: PersistentStateComponent<PluginSettingState> {
 
     override fun loadState(state: PluginSettingState) {
         this.toolClassName = state.toolClassName
+        this.isLooking4NativeMapper = state.isLooking4NativeMapper
     }
 
     companion object {

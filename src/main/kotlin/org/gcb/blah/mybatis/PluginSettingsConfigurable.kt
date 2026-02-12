@@ -5,18 +5,21 @@ import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.psi.JavaCodeFragmentFactory
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
 
 class PluginSettingsConfigurable(private val project: Project) : Configurable {
     private val settings = PluginSettingState.getInstance(project)
     private lateinit var myEditorTextField: EditorTextField
+    private lateinit var panel: DialogPanel
 
     // 设置页面的显示名称
     override fun getDisplayName(): String = "MyBatis Tool Configuration"
@@ -40,7 +43,7 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
         myEditorTextField = EditorTextField(document, project, JavaFileType.INSTANCE)
 
         // 3. 构建 UI
-        return panel {
+        panel = panel {
             row("工具类全限定名:") {
                 // 将自定义组件 wrap 进 DSL
                 cell(myEditorTextField)
@@ -49,15 +52,28 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
             row {
                 text("插件将查询该类内所有方法的usage")
             }
+            row {
+                // 定义 Checkbox
+                checkBox("寻找Mybatis的Mapper")
+                    // 【关键】绑定数据：双向绑定到 state 的变量
+                    .bindSelected(settings::isLooking4NativeMapper)
+                    .comment("勾选后，将启用功能")
+            }
         }
+        return panel
     }
 
     override fun isModified(): Boolean {
-        return myEditorTextField.text != settings.toolClassName
+        return myEditorTextField.text != settings.toolClassName || panel.isModified()
     }
 
     // 点击 "Apply" 或 "OK" 时调用
     override fun apply() {
+        applyToolClassName()
+        panel.apply()
+    }
+
+    private fun applyToolClassName() {
         val inputClassName = myEditorTextField.text.trim()
         if (inputClassName.isBlank()) {
             settings.toolClassName = ""
