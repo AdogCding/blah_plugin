@@ -18,7 +18,8 @@ import javax.swing.JComponent
 
 class PluginSettingsConfigurable(private val project: Project) : Configurable {
     private val settings = PluginSettingState.getInstance(project)
-    private lateinit var myEditorTextField: EditorTextField
+    private lateinit var dbUtilToolEditElement: EditorTextField
+    private lateinit var mybatisMapperAnnotation: EditorTextField
     private lateinit var panel: DialogPanel
 
     // 设置页面的显示名称
@@ -27,30 +28,42 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
     override fun createComponent(): JComponent {
         // 1. 创建一个 Java 代码片段 (Code Fragment)
         // 这个片段的上下文被设定为“类引用”，所以 IDEA 知道这里应该填类名
-        val codeFragment = JavaCodeFragmentFactory.getInstance(project)
+        val dbUtilCodeFragment = JavaCodeFragmentFactory.getInstance(project)
             .createReferenceCodeFragment(
                 settings.toolClassName, // 初始内容
                 null,
                 true,
                 true
             )
+        val mybatisAnnotationCodeFragment = JavaCodeFragmentFactory.getInstance(project)
+            .createReferenceCodeFragment(
+                settings.mybatisAnnotationMapperName, // 初始内容
+                null,
+                true,
+                true
+            )
 
-        val document = PsiDocumentManager.getInstance(project)
-            .getDocument(codeFragment)
+        val dbUtilDoc = PsiDocumentManager.getInstance(project)
+            .getDocument(dbUtilCodeFragment)
+            ?: throw IllegalStateException("无法为 CodeFragment 创建 Document")
+        val mybatisAnnotationDoc = PsiDocumentManager.getInstance(project)
+            .getDocument(mybatisAnnotationCodeFragment)
             ?: throw IllegalStateException("无法为 CodeFragment 创建 Document")
         // 2. 使用这个片段创建一个编辑器文本框
         // JavaFileType.INSTANCE 让它拥有 Java 的语法高亮
-        myEditorTextField = EditorTextField(document, project, JavaFileType.INSTANCE)
-
+        dbUtilToolEditElement = EditorTextField(dbUtilDoc, project, JavaFileType.INSTANCE)
+        mybatisMapperAnnotation = EditorTextField(mybatisAnnotationDoc, project, JavaFileType.INSTANCE)
         // 3. 构建 UI
         panel = panel {
-            row("工具类全限定名:") {
+            row("数据库工具类全限定名:") {
                 // 将自定义组件 wrap 进 DSL
-                cell(myEditorTextField)
+                cell(dbUtilToolEditElement)
                     .align(AlignX.FILL) // 让它填满水平空间
             }
-            row {
-                text("插件将查询该类内所有方法的usage")
+            row("Mybatis注解:") {
+                // 将自定义组件 wrap 进 DSL
+                cell(mybatisMapperAnnotation)
+                    .align(AlignX.FILL) // 让它填满水平空间
             }
             row {
                 // 定义 Checkbox
@@ -64,36 +77,48 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
     }
 
     override fun isModified(): Boolean {
-        return myEditorTextField.text != settings.toolClassName || panel.isModified()
+        return dbUtilToolEditElement.text != settings.toolClassName
+                || panel.isModified()
+                || mybatisMapperAnnotation.text != settings.mybatisAnnotationMapperName
     }
 
     // 点击 "Apply" 或 "OK" 时调用
     override fun apply() {
         applyToolClassName()
+        applyMybatisMapperAnnotation()
         panel.apply()
     }
 
-    private fun applyToolClassName() {
-        val inputClassName = myEditorTextField.text.trim()
-        if (inputClassName.isBlank()) {
-            settings.toolClassName = ""
+    private fun applyEditElement(editorTextField: EditorTextField, assignPluginSettingState: (String) -> Unit) {
+        val input = editorTextField.text.trim()
+        if (input.isBlank()) {
+            assignPluginSettingState("")
             return
         }
         // --- 校验逻辑 ---
         val javaClass = JavaPsiFacade.getInstance(project)
-            .findClass(inputClassName, GlobalSearchScope.allScope(project))
+            .findClass(input, GlobalSearchScope.allScope(project))
 
         if (javaClass == null) {
-            throw ConfigurationException("在当前项目中未找到类: $inputClassName")
+            throw ConfigurationException("在当前项目中未找到类: $input")
         }
-        val oldSetting = settings.toolClassName
-        settings.toolClassName = inputClassName
-        if (oldSetting != settings.toolClassName) {
-            DaemonCodeAnalyzer.getInstance(project).restart()
+        assignPluginSettingState(input)
+    }
+
+    private fun applyMybatisMapperAnnotation() {
+        applyEditElement(mybatisMapperAnnotation) {
+            i -> settings.mybatisAnnotationMapperName = i
+        }
+    }
+
+    private fun applyToolClassName() {
+        applyEditElement(dbUtilToolEditElement) {
+            i -> settings.toolClassName = i
         }
     }
 
     override fun reset() {
-        myEditorTextField.text = settings.toolClassName
+        dbUtilToolEditElement.text = settings.toolClassName
+        mybatisMapperAnnotation.text = settings.mybatisAnnotationMapperName
     }
 }

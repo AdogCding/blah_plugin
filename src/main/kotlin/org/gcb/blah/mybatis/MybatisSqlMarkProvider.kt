@@ -17,13 +17,16 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.psi.NavigatablePsiElement
 import com.intellij.psi.PsiBinaryExpression
+import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDeclarationStatement
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiExpression
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiIdentifier
+import com.intellij.psi.PsiKeyword
 import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiLocalVariable
+import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceExpression
@@ -76,7 +79,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
             val toolClassName = PluginSettingState.getInstance(project).toolClassName
             if (toolClassName.isBlank()) {
                 NotificationGroupManager.getInstance()
-                    .getNotificationGroup("MyBatisPlugin.Notification") // 对应 xml 里的 id
+                    .getNotificationGroup("MyBatisPlugin.Notification")
                     .createNotification(
                         MyMessageBundle.message("mybatis-helper.notification.title"),
                         "请先配置 MyBatis 工具类路径",
@@ -136,7 +139,17 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         project: Project,
         myBatisDmlSql: MyBatisDmlSql
     ): List<PsiElement> {
-        TODO("Not yet implemented")
+        val res = mutableListOf<PsiElement>()
+        val scope = GlobalSearchScope.projectScope(project)
+        val psiSearchHelper = PsiSearchHelper.getInstance(project)
+        psiSearchHelper.processElementsWithWord({ psiEl, _ ->
+            if (psiEl !is PsiIdentifier) {
+                return@processElementsWithWord true
+            }
+            res.addAll(findAnnotationRef(project, psiEl, myBatisDmlSql))
+            true
+        }, scope, myBatisDmlSql.sqlId, UsageSearchContext.IN_CODE, true)
+        return res
     }
 
     private fun PsiElement.isMybatisDmlTag(): Boolean {
@@ -220,8 +233,24 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
         return res
     }
 
-    fun findAnnotationRef(project: Project, mybatisDmlSql: MyBatisDmlSql): List<PsiReference> {
-        return mutableListOf()
+    fun findAnnotationRef(project: Project, literal: PsiIdentifier, myBatisDmlSql: MyBatisDmlSql): List<PsiElement> {
+        // 首先检查一下是不是Mybatis的方法
+        val targetMethod = PsiTreeUtil.getParentOfType(literal, PsiMethod::class.java) ?: return emptyList()
+        val clazz = PsiTreeUtil.getParentOfType(targetMethod, PsiClass::class.java) ?: return emptyList()
+        val anno = PluginSettingState.getInstance(project).mybatisAnnotationMapperName
+        // class一定要是interface
+        val keywordOfClazz = PsiTreeUtil.getChildOfType(clazz, PsiKeyword::class.java) ?: return emptyList()
+        if (keywordOfClazz.text.trim() != "interface") {
+            return emptyList()
+        }
+        if (!clazz.hasAnnotation(anno)) {
+            return emptyList()
+        }
+        val fullName = "${clazz.qualifiedName}.${targetMethod.name}"
+        if (fullName != myBatisDmlSql.toFullName()) {
+            return mutableListOf()
+        }
+        return mutableListOf(targetMethod)
     }
 
 
