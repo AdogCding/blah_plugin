@@ -1,0 +1,9 @@
+<idea-plugin>
+    <actions>
+        <action id="org.gcb.blah.rtp.GenerateMyBatisFragAction"
+                class="org.gcb.blah.rtp.GenerateMyBatisFragAction"
+                text="生成 MyBatis 代码(XML)">
+            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
+        </action>
+    </actions>
+</idea-plugin>
