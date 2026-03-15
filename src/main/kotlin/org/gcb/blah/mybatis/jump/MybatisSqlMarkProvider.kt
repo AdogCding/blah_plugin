@@ -1,4 +1,4 @@
-package org.gcb.blah.mybatis
+package org.gcb.blah.mybatis.jump
 
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
@@ -28,7 +28,6 @@ import com.intellij.psi.PsiLiteralExpression
 import com.intellij.psi.PsiLocalVariable
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceExpression
 import com.intellij.psi.impl.JavaConstantExpressionEvaluator
 import com.intellij.psi.search.GlobalSearchScope

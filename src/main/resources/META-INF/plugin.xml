@@ -30,15 +30,15 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable
                 parentId="tools"
-                instance="org.gcb.blah.mybatis.PluginSettingsConfigurable"
-                id="org.gcb.blah.mybatis.PluginSettingsConfigurable"
+                instance="org.gcb.blah.mybatis.jump.PluginSettingsConfigurable"
+                id="org.gcb.blah.mybatis.jump.PluginSettingsConfigurable"
                 displayName="MyBatis Helper"/>
-        <codeInsight.lineMarkerProvider language="XML" implementationClass="org.gcb.blah.mybatis.MybatisSqlMarkProvider"/>
+        <codeInsight.lineMarkerProvider language="XML" implementationClass="org.gcb.blah.mybatis.jump.MybatisSqlMarkProvider"/>
         <notificationGroup id="MyBatisPlugin.Notification" displayType="BALLOON"/>
     </extensions>
     <actions>
-        <action id="org.gcb.blah.mybatis.RefreshMybatisMarkerAction"
-                class="org.gcb.blah.mybatis.RefreshMybatisMarkerAction"
+        <action id="org.gcb.blah.mybatis.jump.RefreshMybatisMarkerAction"
+                class="org.gcb.blah.mybatis.jump.RefreshMybatisMarkerAction"
                 text="Refresh MyBatis Markers"
                 description="Manually triggers a re-scan of MyBatis mappers">
             <add-to-group group-id="ToolsMenu" anchor="last"/>

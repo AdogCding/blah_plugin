@@ -1,6 +1,5 @@
-package org.gcb.blah.mybatis
+package org.gcb.blah.mybatis.jump
 
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException

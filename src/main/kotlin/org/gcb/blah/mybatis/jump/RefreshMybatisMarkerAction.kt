@@ -1,4 +1,4 @@
-package org.gcb.blah.mybatis
+package org.gcb.blah.mybatis.jump
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.actionSystem.AnAction

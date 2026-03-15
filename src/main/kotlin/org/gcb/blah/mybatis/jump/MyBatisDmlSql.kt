@@ -1,4 +1,4 @@
-package org.gcb.blah.mybatis
+package org.gcb.blah.mybatis.jump
 
 data class MyBatisDmlSql(val sqlId: String, val namespace: String) {
 
