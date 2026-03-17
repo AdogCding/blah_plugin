@@ -13,6 +13,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -38,16 +39,15 @@ class RtpCodeDialog(
     }
 
     override fun createCenterPanel(): JComponent {
-        val psiFile = PsiFileFactory.getInstance(project).createFileFromText(
-            "DummyCode.$fileSuffix",
+
+        val psiFile = LightVirtualFile(
+            "DemoXml.$fileSuffix",
             fileType,
             generatedCode
         )
 
-        val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)
-            ?: psiFile.viewProvider.document  // 99% 的轻量级虚拟文件能在这里拿到
-            ?: FileDocumentManager.getInstance().getDocument(psiFile.virtualFile)
-            ?: throw IllegalStateException("无法为 PsiFile 创建 Document") // 兜底防爆
+        val document = FileDocumentManager.getInstance().getDocument(psiFile)
+            ?: throw RuntimeException("Document not found")
 
         previewEditor = EditorFactory.getInstance().createViewer(document, project)
 

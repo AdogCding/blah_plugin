@@ -1,10 +1,14 @@
 package org.gcb.blah.rtp
 
 import com.intellij.database.psi.DbTable
+import com.intellij.ide.highlighter.JavaFileType
+import com.intellij.ide.highlighter.XmlFileType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
+import org.gcb.blah.rtp.entity.TableDefEntity
 
 class GenerateMyBatisFragAction: AnAction() {
 
@@ -17,6 +21,13 @@ class GenerateMyBatisFragAction: AnAction() {
         e.presentation.isEnabledAndVisible = keys?.any { it is DbTable } ?: false
     }
     override fun actionPerformed(p0: AnActionEvent) {
-        
+        val project = p0.project!!
+        val highlighter = EditorHighlighterFactory.getInstance()
+            .createEditorHighlighter(project, XmlFileType.INSTANCE)
+        RtpCodeDialog(project, RtpCodeTemplate.getSelectStmt(TableDefEntity("demo",
+            listOf("col1", "col2"))),
+            highlighter,
+            XmlFileType.INSTANCE,
+            "xml").show()
     }
 }
