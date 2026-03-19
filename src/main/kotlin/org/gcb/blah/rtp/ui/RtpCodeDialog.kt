@@ -1,6 +1,5 @@
-package org.gcb.blah.rtp
+package org.gcb.blah.rtp.ui
 
-import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEx
@@ -11,8 +10,6 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiFileFactory
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
@@ -28,7 +25,8 @@ class RtpCodeDialog(
     private val generatedCode: String,
     private val highlighter: EditorHighlighter,
     private val fileType: FileType,
-    private val fileSuffix: String
+    private val fileSuffix: String,
+    private val demoFileName: String = "DemoFile"
 ): DialogWrapper(project) {
 
     private lateinit var previewEditor: Editor
@@ -41,7 +39,7 @@ class RtpCodeDialog(
     override fun createCenterPanel(): JComponent {
 
         val psiFile = LightVirtualFile(
-            "DemoXml.$fileSuffix",
+            "$demoFileName.$fileSuffix",
             fileType,
             generatedCode
         )
