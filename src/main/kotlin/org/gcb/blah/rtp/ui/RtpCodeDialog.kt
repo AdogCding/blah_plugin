@@ -1,6 +1,5 @@
-package org.gcb.blah.rtp
+package org.gcb.blah.rtp.ui
 
-import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEx
@@ -11,8 +10,7 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiFileFactory
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -27,7 +25,8 @@ class RtpCodeDialog(
     private val generatedCode: String,
     private val highlighter: EditorHighlighter,
     private val fileType: FileType,
-    private val fileSuffix: String
+    private val fileSuffix: String,
+    private val demoFileName: String = "DemoFile"
 ): DialogWrapper(project) {
 
     private lateinit var previewEditor: Editor
@@ -38,16 +37,15 @@ class RtpCodeDialog(
     }
 
     override fun createCenterPanel(): JComponent {
-        val psiFile = PsiFileFactory.getInstance(project).createFileFromText(
-            "DummyCode.$fileSuffix",
+
+        val psiFile = LightVirtualFile(
+            "$demoFileName.$fileSuffix",
             fileType,
             generatedCode
         )
 
-        val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)
-            ?: psiFile.viewProvider.document  // 99% 的轻量级虚拟文件能在这里拿到
-            ?: FileDocumentManager.getInstance().getDocument(psiFile.virtualFile)
-            ?: throw IllegalStateException("无法为 PsiFile 创建 Document") // 兜底防爆
+        val document = FileDocumentManager.getInstance().getDocument(psiFile)
+            ?: throw RuntimeException("Document not found")
 
         previewEditor = EditorFactory.getInstance().createViewer(document, project)
 

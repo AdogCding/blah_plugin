@@ -43,12 +43,5 @@
                 description="Manually triggers a re-scan of MyBatis mappers">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
-        <action id="MyPlugin.GenerateCodeForMethod"
-                class="org.gcb.blah.rtp.RtpCodeGenerateAction"
-                text="生成测试代码"
-                description="为当前方法生成一段测试代码">
-
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
     </actions>
 </idea-plugin>

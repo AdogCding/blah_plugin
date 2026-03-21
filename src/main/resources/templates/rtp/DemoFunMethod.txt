@@ -1,0 +1,8 @@
+/**
+ * 根据 ID 获取实体
+ * @param $PARAM_NAME$ 实体 ID
+ * @return 对应的 $ENTITY_CLASS$ 实体
+ */
+public $RETURN_TYPE$ $METHOD_NAME$($PARAM_TYPE$ $PARAM_NAME$) {
+    return null;
+}

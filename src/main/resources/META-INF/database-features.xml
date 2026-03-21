@@ -1,8 +1,13 @@
 <idea-plugin>
     <actions>
-        <action id="org.gcb.blah.rtp.GenerateMyBatisFragAction"
-                class="org.gcb.blah.rtp.GenerateMyBatisFragAction"
+        <action id="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
+                class="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
                 text="生成 MyBatis 代码(XML)">
+            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
+        </action>
+        <action id="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
+                class="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
+                text="生成Table的Class代码">
             <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
         </action>
     </actions>
