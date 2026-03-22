@@ -1,16 +1,16 @@
 package org.gcb.blah.rtp.ui
 
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.EditorFactory
-import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.highlighter.EditorHighlighter
-import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.testFramework.LightVirtualFile
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFileFactory
+import com.intellij.ui.EditorTextField
+import com.intellij.ui.LanguageTextField
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -23,13 +23,8 @@ import javax.swing.JPanel
 class RtpCodeDialog(
     val project: Project,
     private val generatedCode: String,
-    private val highlighter: EditorHighlighter,
-    private val fileType: FileType,
-    private val fileSuffix: String,
-    private val demoFileName: String = "DemoFile"
+    private val fileType: FileType
 ): DialogWrapper(project) {
-
-    private lateinit var previewEditor: Editor
 
     init {
         title = "Rtp Code Generator"
@@ -37,29 +32,19 @@ class RtpCodeDialog(
     }
 
     override fun createCenterPanel(): JComponent {
+        val language = (fileType as LanguageFileType).language
+        val editorPanel = LanguageTextField(language, project, generatedCode, false)
+        editorPanel.isViewer = true
+        editorPanel.setOneLineMode(false)
 
-        val psiFile = LightVirtualFile(
-            "$demoFileName.$fileSuffix",
-            fileType,
-            generatedCode
-        )
-
-        val document = FileDocumentManager.getInstance().getDocument(psiFile)
-            ?: throw RuntimeException("Document not found")
-
-        previewEditor = EditorFactory.getInstance().createViewer(document, project)
-
-        (previewEditor as EditorEx).highlighter = highlighter
-
-        val settings = previewEditor.settings
-        settings.isLineNumbersShown = true       // 显示行号
-        settings.isFoldingOutlineShown = true    // 显示折叠箭头
-        settings.isVirtualSpace = false          // 关闭虚拟空间
-        settings.isLineMarkerAreaShown = false   // 隐藏左侧的断点区域
-        settings.isUseSoftWraps = true        // 如果你想让太长的代码自动折行显示，取消这行注释
-
+        editorPanel.addSettingsProvider { editor ->
+            editor.settings.isLineNumbersShown = true
+            editor.settings.isFoldingOutlineShown = true
+            editor.settings.isVirtualSpace = false
+            editor.colorsScheme = EditorColorsManager.getInstance().globalScheme
+        }
         val panel = JPanel(BorderLayout())
-        panel.add(previewEditor.component, BorderLayout.CENTER)
+        panel.add(editorPanel, BorderLayout.CENTER)
         return panel
     }
 
@@ -77,15 +62,11 @@ class RtpCodeDialog(
                 Messages.showInfoMessage("代码已复制到剪贴板！", "成功")
             }
         }
-
         // 返回我们自定义的 Action 数组
         return arrayOf(copyAction, cancelAction)
     }
 
     override fun dispose() {
-        if (this::previewEditor.isInitialized) {
-            EditorFactory.getInstance().releaseEditor(previewEditor)
-        }
         super.dispose()
     }
 

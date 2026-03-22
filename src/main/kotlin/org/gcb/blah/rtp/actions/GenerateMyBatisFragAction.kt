@@ -38,9 +38,7 @@ class GenerateMyBatisFragAction : AnAction() {
                     cols
                 )
             ),
-            highlighter,
-            XmlFileType.INSTANCE,
-            "xml"
+            XmlFileType.INSTANCE
         ).show()
     }
 }

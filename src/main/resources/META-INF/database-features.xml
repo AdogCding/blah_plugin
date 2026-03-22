@@ -1,14 +1,19 @@
 <idea-plugin>
     <actions>
-        <action id="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
-                class="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
-                text="生成 MyBatis 代码(XML)">
+        <group id="org.blah.plugin.db"
+               text="生成模板代码"
+               description="模板代码生成工具"
+               popup="true">
             <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
-        </action>
-        <action id="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
-                class="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
-                text="生成Table的Class代码">
-            <add-to-group group-id="DatabaseViewPopupMenu" anchor="first"/>
-        </action>
+
+            <action id="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
+                    class="org.gcb.blah.rtp.actions.GenerateMyBatisFragAction"
+                    text="生成 MyBatis 代码(XML)">
+            </action>
+            <action id="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
+                    class="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
+                    text="生成Table的Class代码">
+            </action>
+        </group>
     </actions>
 </idea-plugin>
