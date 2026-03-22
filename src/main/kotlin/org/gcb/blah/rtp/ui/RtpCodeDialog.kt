@@ -1,14 +1,18 @@
 package org.gcb.blah.rtp.ui
 
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.LanguageFileType
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.WriteActionAutoCloseable
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.LanguageTextField
 import com.intellij.util.ui.JBUI
@@ -24,16 +28,27 @@ class RtpCodeDialog(
     val project: Project,
     private val generatedCode: String,
     private val fileType: FileType
-): DialogWrapper(project) {
+) : DialogWrapper(project) {
 
     init {
         title = "Rtp Code Generator"
         init()
     }
 
+    fun formatCode(document: Document) {
+        PsiDocumentManager.getInstance(project).getPsiFile(document)?.let { psiFile ->
+            WriteCommandAction.runWriteCommandAction(project) {
+                CodeStyleManager.getInstance(project).reformat(psiFile)
+            }
+        }
+    }
+
     override fun createCenterPanel(): JComponent {
         val language = (fileType as LanguageFileType).language
         val editorPanel = LanguageTextField(language, project, generatedCode, false)
+
+        formatCode(editorPanel.document)
+
         editorPanel.isViewer = true
         editorPanel.setOneLineMode(false)
 

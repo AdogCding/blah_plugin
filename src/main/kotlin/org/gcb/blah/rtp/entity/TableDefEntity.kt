@@ -6,7 +6,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
 
-data class TableDefEntity(val tableName: String, val columns: List<String>)
+data class TableDefEntity(
+    val tableName: String,
+    val columns: List<String>,
+    val primaryKeys: List<String>,
+)
 
 
 object TableDefService {
@@ -15,6 +19,7 @@ object TableDefService {
         val table = keys?.first() as? DbTable ?: throw IllegalStateException("Table does not contain table")
         val tableName = table.name
         val cols = DasUtil.getColumns(table).map { it.name }.toList()
-        return TableDefEntity(tableName, cols)
+        val primaryKeys = DasUtil.getColumns(table).filter { DasUtil.isPrimary(it) }.map { it.name }.toList()
+        return TableDefEntity(tableName, cols, primaryKeys)
     }
 }
