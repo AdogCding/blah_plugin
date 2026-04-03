@@ -15,6 +15,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.LanguageTextField
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.Dimension
@@ -23,6 +24,7 @@ import java.awt.event.ActionEvent
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.ScrollPaneConstants
 
 class RtpCodeDialog(
     val project: Project,
@@ -58,8 +60,11 @@ class RtpCodeDialog(
             editor.settings.isVirtualSpace = false
             editor.colorsScheme = EditorColorsManager.getInstance().globalScheme
         }
+        val scrollPanel = JBScrollPane(editorPanel)
+        scrollPanel.verticalScrollBarPolicy = ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+        scrollPanel.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
         val panel = JPanel(BorderLayout())
-        panel.add(editorPanel, BorderLayout.CENTER)
+        panel.add(scrollPanel, BorderLayout.CENTER)
         return panel
     }
 
