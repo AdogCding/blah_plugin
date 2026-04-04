@@ -10,10 +10,19 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import javax.swing.JComponent
+
+enum class MybatisCheckSeverity(val code: String) {
+    IGNORE("Ignore"),
+    ERROR("Error"),
+    WARNING("Warning"),
+    INFO("Info")
+}
 
 class PluginSettingsConfigurable(private val project: Project) : Configurable {
     private val settings = PluginSettingState.getInstance(project)
@@ -70,6 +79,22 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
                     // 【关键】绑定数据：双向绑定到 state 的变量
                     .bindSelected(settings::isLooking4NativeMapper)
                     .comment("勾选后，将启用功能")
+            }
+            row("配置Mybatis的字段匹配功能") {
+                comboBox(MybatisCheckSeverity.entries.map { it.code }.toList())
+                    .bindItem(getter = settings::mybatisCheckSeverity) {
+                        newValue -> settings.state.mybatisCheckSeverity = newValue ?: MybatisCheckSeverity.IGNORE.code
+                    }.applyToComponent {
+                        renderer = SimpleListCellRenderer.create { label, value, _ ->
+                            label.text = when (value) {
+                                MybatisCheckSeverity.IGNORE.code -> " 无视 (Ignore)"
+                                MybatisCheckSeverity.WARNING.code -> "警告 (Warning)"
+                                MybatisCheckSeverity.INFO.code -> "信息 (Info)"
+                                MybatisCheckSeverity.ERROR.code -> "错误 (Error)"
+                                else -> value
+                            }
+                        }
+                    }
             }
         }
         return panel
