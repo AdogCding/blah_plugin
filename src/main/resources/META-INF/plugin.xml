@@ -28,8 +28,8 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <psi.referenceContributor language="XML" implementation="org.gcb.blah.mybatis.syntax.MybatisReferenceContributor" />
         <annotator language="XML" implementationClass="org.gcb.blah.mybatis.annotators.SelectStmtResultTypeAnnotator">
-
         </annotator>
         <projectConfigurable
                 parentId="tools"

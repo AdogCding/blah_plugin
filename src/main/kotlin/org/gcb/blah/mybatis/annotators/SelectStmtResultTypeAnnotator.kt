@@ -28,6 +28,19 @@ class SelectStmtResultTypeAnnotator : Annotator {
     }
 }
 
+private fun collectVariables(psiElement: PsiElement): List<String> {
+
+    return emptyList()
+}
+
+private fun checkResultType(resultType: String) {
+
+}
+
+private fun checkParameterType(parameterType: String) {
+
+}
+
 private fun map2HighlightSeverity(severity: String): HighlightSeverity = when (severity) {
     MybatisCheckSeverity.ERROR.code -> HighlightSeverity.ERROR
     MybatisCheckSeverity.WARNING.code -> HighlightSeverity.WARNING
