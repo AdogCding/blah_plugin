@@ -12,11 +12,10 @@ import com.intellij.psi.PsiReferenceContributor
 import com.intellij.psi.PsiReferenceProvider
 import com.intellij.psi.PsiReferenceRegistrar
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.xml.XmlAttributeValue
 import com.intellij.psi.xml.XmlTag
-import com.intellij.psi.xml.XmlText
 import com.intellij.psi.xml.XmlTokenType
 import com.intellij.util.ProcessingContext
+import ognl.Ognl
 import org.gcb.blah.general.GeneralProjectUtils
 
 object MybatisParmProvider: PsiReferenceProvider() {
@@ -40,7 +39,9 @@ object MybatisParmProvider: PsiReferenceProvider() {
 
 
 object MybatisXmlAttributeParamProvider: PsiReferenceProvider() {
+    private val XML_ATTRIBUTE_PARAM = Regex("""""")
     override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<out PsiReference?> {
+        Ognl.parseExpression(p0.text)
         return PsiReference.EMPTY_ARRAY
     }
 }
@@ -57,7 +58,10 @@ class MybatisReferenceContributor: PsiReferenceContributor() {
                 )
             )
         rgstr.registerReferenceProvider(mybatisSqlPattern, MybatisParmProvider)
-        rgstr.registerReferenceProvider(XmlPatterns.xmlAttribute(),
+        val mybatisXmlAttributePattern = PlatformPatterns.psiElement(XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN)
+            .inFile(XmlPatterns.xmlFile())
+            .inside(XmlPatterns.xmlAttribute().withName("test"))
+        rgstr.registerReferenceProvider(mybatisXmlAttributePattern,
             MybatisXmlAttributeParamProvider)
     }
 }

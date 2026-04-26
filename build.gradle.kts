@@ -26,6 +26,7 @@ dependencies {
         bundledPlugin("com.intellij.java")
         bundledPlugin("com.intellij.database")
     }
+    implementation("ognl:ognl:3.3.4")
 }
 
 intellijPlatform {
