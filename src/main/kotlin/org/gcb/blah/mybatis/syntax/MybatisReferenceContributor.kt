@@ -15,8 +15,13 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlTag
 import com.intellij.psi.xml.XmlTokenType
 import com.intellij.util.ProcessingContext
+import ognl.ASTProperty
+import ognl.ASTVarRef
+import ognl.Node
 import ognl.Ognl
 import org.gcb.blah.general.GeneralProjectUtils
+import java.util.Deque
+import java.util.Queue
 
 object MybatisParmProvider: PsiReferenceProvider() {
     private val PARAM_REGEX = Regex("""[#$]\{([a-zA-Z_$][a-zA-Z0-9_$]*)}""")
@@ -37,11 +42,33 @@ object MybatisParmProvider: PsiReferenceProvider() {
 }
 
 
+object OgnlUtils {
+    fun bfs(root: Node): List<Node> {
+        val res = mutableListOf<Node>()
+        val queue = ArrayDeque<Node>()
+        queue.add(root)
+        while (queue.isNotEmpty()) {
+            val node = queue.removeFirst()
+            if (node is ASTVarRef) {
+                res.add(node)
+            } else if (node is ASTProperty
+                && !node.toString().startsWith("\"")
+                && !node.toString().startsWith("'")) {
+                res.add(node)
+            }
+            for(childIdx in 0 until node.jjtGetNumChildren()) {
+                node.jjtGetChild(childIdx)?.let { res.add(it) }
+            }
+        }
+        return res
+    }
+}
 
 object MybatisXmlAttributeParamProvider: PsiReferenceProvider() {
     private val XML_ATTRIBUTE_PARAM = Regex("""""")
     override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<out PsiReference?> {
-        Ognl.parseExpression(p0.text)
+        val root = Ognl.parseExpression(p0.text) as Node
+        OgnlUtils.bfs(root)
         return PsiReference.EMPTY_ARRAY
     }
 }
