@@ -20,6 +20,7 @@ import ognl.ASTVarRef
 import ognl.Node
 import ognl.Ognl
 import org.gcb.blah.general.GeneralProjectUtils
+import org.ini4j.Reg
 import java.util.Deque
 import java.util.Queue
 
@@ -65,10 +66,27 @@ object OgnlUtils {
 }
 
 object MybatisXmlAttributeParamProvider: PsiReferenceProvider() {
-    private val XML_ATTRIBUTE_PARAM = Regex("""""")
     override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<out PsiReference?> {
-        val root = Ognl.parseExpression(p0.text) as Node
-        OgnlUtils.bfs(root)
+        val targetClass = resolveParameterTypeForElement(p0) ?: return PsiReference.EMPTY_ARRAY
+        val expressionText = p0.text
+        val res = mutableListOf<PsiReference>()
+        val root = try {
+            Ognl.parseExpression(expressionText) as Node
+        } catch (e: Exception) {
+            null
+        }
+        if (root == null) {
+            return PsiReference.EMPTY_ARRAY
+        }
+        val targetNodes = OgnlUtils.bfs(root).map { it.toString() }.forEach {
+            name ->
+            val regex = Regex("""\b$name\b""")
+            regex.findAll(expressionText).forEach { matchResult ->
+                val start = matchResult.range.first
+                val end = start + name.length
+                res.add(MybatisParamReference(p0, TextRange(start, end), name, targetClass))
+            }
+        }
         return PsiReference.EMPTY_ARRAY
     }
 }
