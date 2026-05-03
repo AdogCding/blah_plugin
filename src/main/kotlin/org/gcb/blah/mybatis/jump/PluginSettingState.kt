@@ -14,7 +14,7 @@ class PluginSettingState: PersistentStateComponent<PluginSettingState> {
     var toolClassName: String = ""
     var mybatisAnnotationMapperName: String = ""
     var isLooking4NativeMapper: Boolean = false
-    var mybatisCheckSeverity: String = "Ignore"
+    var isMybatisRefCheckStrict: Boolean = true
 
     override fun getState(): PluginSettingState {
         return this

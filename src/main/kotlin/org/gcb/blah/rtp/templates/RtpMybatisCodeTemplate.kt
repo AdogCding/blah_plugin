@@ -18,7 +18,7 @@ object RtpMybatisCodeTemplate {
         """.trimIndent()
     }
     fun getSelectStmt(table: TableDefEntity): String {
-        val selectId = UUID.randomUUID()
+        val selectId = "query${table.tableName.toUpperCamelCase()}"
         return """
                 <select id="$selectId" resultType="" parameterType="">
                         select ${table.columns.joinToString(", ")} 

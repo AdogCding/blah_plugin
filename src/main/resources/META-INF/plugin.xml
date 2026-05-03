@@ -13,10 +13,9 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-       MyBatis 辅助插件。<br>
-      功能：<br>
-      1. XML 跳转 Java 代码。<br>
-      2. 支持自定义工具类搜索。
+        [SQL解析] 新增针对静态 SQL 文本的参数提取机制，支持 #{param} 变量的高亮与声明跳转。
+        [动态SQL] 新增对 <if> 标签中 test 属性的 OGNL 表达式解析与引用绑定。
+        [动态SQL] 新增对 <foreach> 标签中 collection 属性的解析支持，精准定位集合参数。
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -29,8 +28,6 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <psi.referenceContributor language="XML" implementation="org.gcb.blah.mybatis.syntax.MybatisReferenceContributor" />
-        <annotator language="XML" implementationClass="org.gcb.blah.mybatis.annotators.SelectStmtResultTypeAnnotator">
-        </annotator>
         <projectConfigurable
                 parentId="tools"
                 instance="org.gcb.blah.mybatis.jump.PluginSettingsConfigurable"

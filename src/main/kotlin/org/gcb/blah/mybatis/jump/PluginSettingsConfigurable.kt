@@ -80,21 +80,12 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
                     .bindSelected(settings::isLooking4NativeMapper)
                     .comment("勾选后，将启用功能")
             }
-            row("配置Mybatis的字段匹配功能") {
-                comboBox(MybatisCheckSeverity.entries.map { it.code }.toList())
-                    .bindItem(getter = settings::mybatisCheckSeverity) {
-                        newValue -> settings.state.mybatisCheckSeverity = newValue ?: MybatisCheckSeverity.IGNORE.code
-                    }.applyToComponent {
-                        renderer = SimpleListCellRenderer.create { label, value, _ ->
-                            label.text = when (value) {
-                                MybatisCheckSeverity.IGNORE.code -> " 无视 (Ignore)"
-                                MybatisCheckSeverity.WARNING.code -> "警告 (Warning)"
-                                MybatisCheckSeverity.INFO.code -> "信息 (Info)"
-                                MybatisCheckSeverity.ERROR.code -> "错误 (Error)"
-                                else -> value
-                            }
-                        }
-                    }
+            row() {
+                // 定义 Checkbox
+                checkBox("是否启用Mybatis Reference严格模式")
+                    // 【关键】绑定数据：双向绑定到 state 的变量
+                    .bindSelected(settings::isMybatisRefCheckStrict)
+                    .comment("勾选后，将启用功能")
             }
         }
         return panel
