@@ -1,4 +1,4 @@
-package org.gcb.blah.mybatis.syntax
+package org.gcb.blah.mybatis.syntax.contributors
 
 import ai.grazie.text.range
 import com.intellij.openapi.util.TextRange
@@ -21,20 +21,37 @@ import ognl.ASTVarRef
 import ognl.Node
 import ognl.Ognl
 import org.gcb.blah.general.GeneralProjectUtils
+import org.gcb.blah.mybatis.syntax.common.MybatisRawSqlParameterUtils
+import org.gcb.blah.mybatis.syntax.references.MybatisMapKeyReference
+import org.gcb.blah.mybatis.syntax.references.MybatisParamReference
 
 
-private val SQL_TAG_LIST = listOf("select", "update", "insert", "delete")
+object MybatisRawSqlMapKeyProvider: PsiReferenceProvider() {
+    override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<PsiReference> {
+        if (ParameterTypeUtils.isParameterTypeNotJavaMap(p0)) {
+            return PsiReference.EMPTY_ARRAY
+        }
+        val text = p0.text
+        val res = mutableListOf<PsiReference>()
+        MybatisRawSqlParameterUtils.matchParameters(text).forEach { matchResult ->
+            val innerGroup = matchResult.groups[1]
+            val value = innerGroup?.value ?: return@forEach
+            res.add(MybatisMapKeyReference(p0, TextRange(innerGroup.range.first, innerGroup.range.first + value.range.length), value.trimIndent()))
+        }
+        return res.toTypedArray()
+    }
+}
+
 
 object MybatisRawSqlParameterProvider: PsiReferenceProvider() {
-    private val PARAM_REGEX = Regex("""[#$]\{([a-zA-Z_$][a-zA-Z0-9_$]*)}""")
     override fun getReferencesByElement(
         element: PsiElement,
         p1: ProcessingContext
     ): Array<out PsiReference?> {
-        val targetClass = resolveParameterTypeOfDml(element) ?: return PsiReference.EMPTY_ARRAY
+        val targetClass = ParameterTypeUtils.resolveParameterTypeOfDml(element) ?: return PsiReference.EMPTY_ARRAY
         val text = element.text
         val res = mutableListOf<PsiReference>()
-        PARAM_REGEX.findAll(text).forEach { matchResult ->
+        MybatisRawSqlParameterUtils.matchParameters(text).forEach { matchResult ->
             val innerGroup = matchResult.groups[1]
             val value = innerGroup?.value ?: return@forEach
             res.add(MybatisParamReference(element, TextRange(innerGroup.range.first, innerGroup.range.first + value.range.length), value.trimIndent(), targetClass))
@@ -68,7 +85,7 @@ object OgnlUtils {
 
 object MybatisXmlAttrOgnlProvider: PsiReferenceProvider() {
     override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<out PsiReference?> {
-        val targetClass = resolveParameterTypeOfXmlAttrOgnl(p0) ?: return PsiReference.EMPTY_ARRAY
+        val targetClass = ParameterTypeUtils.resolveParameterTypeOfXmlAttrOgnl(p0) ?: return PsiReference.EMPTY_ARRAY
         val expressionText = (p0 as XmlAttributeValue).value
         val res = mutableListOf<PsiReference>()
         val root = try {
@@ -95,7 +112,7 @@ object MybatisXmlAttrOgnlProvider: PsiReferenceProvider() {
 object MyBatisForeachCollectionRefProvider: PsiReferenceProvider() {
     override fun getReferencesByElement(p0: PsiElement, p1: ProcessingContext): Array<PsiReference> {
         val collectionName = (p0 as XmlAttributeValue).value
-        val targetClass = resolveParameterTypeOfXmlAttr(p0) ?: return PsiReference.EMPTY_ARRAY
+        val targetClass = ParameterTypeUtils.resolveParameterTypeOfXmlAttr(p0) ?: return PsiReference.EMPTY_ARRAY
         val res = mutableListOf<PsiReference>()
         res.add(MybatisParamReference(p0, TextRange(0, collectionName.length), collectionName, targetClass))
         return res.toTypedArray()
@@ -113,7 +130,9 @@ class MybatisReferenceContributor: PsiReferenceContributor() {
                     StandardPatterns.string().oneOf("select", "insert", "update", "delete", "sql")
                 )
             )
+        // raw sql like where a = #{variable}
         rgstr.registerReferenceProvider(mybatisRawSqlPattern, MybatisRawSqlParameterProvider)
+        rgstr.registerReferenceProvider(mybatisRawSqlPattern, MybatisRawSqlMapKeyProvider)
         val mybatisXmlAttributeOgnlPattern = XmlPatterns.xmlAttributeValue()
             .withParent(
                 XmlPatterns.xmlAttribute("test").withParent(
@@ -122,6 +141,7 @@ class MybatisReferenceContributor: PsiReferenceContributor() {
                     )
                 )
             )
+        // xml attribute ognl expression like <if test="variable == '1'">
         rgstr.registerReferenceProvider(mybatisXmlAttributeOgnlPattern,
             MybatisXmlAttrOgnlProvider
         )
@@ -133,26 +153,48 @@ class MybatisReferenceContributor: PsiReferenceContributor() {
                     )
                 )
             )
+        // xml label like <foreach collection=""variable">
         rgstr.registerReferenceProvider(mybatisForeachCollectionRefPattern, MyBatisForeachCollectionRefProvider)
     }
 }
 
-private fun resolveParameterTypeOfDml(element: PsiElement): PsiClass? {
-    return resolveParameterTypeOfMybatisText(element)
+object ParameterTypeUtils {
+    private val SQL_TAG_LIST = listOf("select", "update", "insert", "delete")
+
+    fun resolveParameterTypeOfDml(element: PsiElement): PsiClass? {
+        return resolveParameterTypeOfMybatisText(element)
+    }
+
+    private fun isParameterTypeJavaMap(element: PsiElement): Boolean{
+        val tag = PsiTreeUtil.findFirstParent(element) {
+            it is XmlTag && it.name in SQL_TAG_LIST
+        } as? XmlTag ?: return false
+        val typeStr = tag.getAttributeValue("parameterType") ?: return false
+        return "java.util.Map" == typeStr
+    }
+
+    fun isParameterTypeNotJavaMap(element: PsiElement): Boolean {
+        return !isParameterTypeJavaMap(element)
+    }
+
+    private fun resolveParameterTypeOfMybatisText(element: PsiElement): PsiClass? {
+        val tag = PsiTreeUtil.findFirstParent(element) {
+            it is XmlTag && it.name in SQL_TAG_LIST
+        } as? XmlTag ?: return null
+        val typeStr = tag.getAttributeValue("parameterType") ?: return null
+        return GeneralProjectUtils.findClazzExistInProject(element.project, typeStr)
+    }
+
+    fun resolveParameterTypeOfXmlAttr(element: PsiElement): PsiClass? {
+        return resolveParameterTypeOfMybatisText(element)
+    }
+
+    fun resolveParameterTypeOfXmlAttrOgnl(element: PsiElement): PsiClass? {
+        return resolveParameterTypeOfXmlAttr(element)
+    }
 }
 
-private fun resolveParameterTypeOfMybatisText(element: PsiElement): PsiClass? {
-    val tag = PsiTreeUtil.findFirstParent(element) {
-        it is XmlTag && it.name in SQL_TAG_LIST
-    } as? XmlTag ?: return null
-    val typeStr = tag.getAttributeValue("parameterType") ?: return null
-    return GeneralProjectUtils.findClazzExistInProject(element.project, typeStr)
-}
 
-private fun resolveParameterTypeOfXmlAttr(element: PsiElement): PsiClass? {
-    return resolveParameterTypeOfMybatisText(element)
-}
 
-private fun resolveParameterTypeOfXmlAttrOgnl(element: PsiElement): PsiClass? {
-    return resolveParameterTypeOfXmlAttr(element)
-}
+
+

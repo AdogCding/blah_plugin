@@ -1,5 +1,6 @@
 package org.gcb.blah.mybatis.jump
 
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
@@ -101,7 +102,12 @@ class PluginSettingsConfigurable(private val project: Project) : Configurable {
     override fun apply() {
         applyToolClassName()
         applyMybatisMapperAnnotation()
+        restartCodeAnalyzer(project)
         panel.apply()
+    }
+
+    private fun restartCodeAnalyzer(project: Project) {
+        DaemonCodeAnalyzer.getInstance(project).restart()
     }
 
     private fun applyEditElement(editorTextField: EditorTextField, assignPluginSettingState: (String) -> Unit) {

@@ -1,4 +1,4 @@
-package org.gcb.blah.mybatis.syntax
+package org.gcb.blah.mybatis.syntax.references
 
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiClass
