@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "org.gcb"
-version = "1.0.3-SNAPSHOT"
+version = "1.0.4-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -39,6 +39,7 @@ intellijPlatform {
         [SQL解析] 新增针对静态 SQL 文本的参数提取机制，支持 #{param} 变量的高亮与声明跳转。
         [动态SQL] 新增对 <if> 标签中 test 属性的 OGNL 表达式解析与引用绑定。
         [动态SQL] 新增对 <foreach> 标签中 collection 属性的解析支持，精准定位集合参数。
+        [动态SQL] 新增支持追踪parameterResult为java.util.Map的参数绑定。
         """.trimIndent()
     }
 }
