@@ -92,7 +92,7 @@ class MybatisSqlMarkProvider : RelatedItemLineMarkerProvider() {
                         if (indicator.isCanceled) {
                             return@runReadAction
                         }
-                        val rtpUsages = MybatisSqlUsageUtils.findMethod(project, toolClassName, myBatisDmlSql)
+                        val rtpUsages = MybatisSqlUsageUtils.findMethodExpression(project, toolClassName, myBatisDmlSql)
                         foundTargets.addAll(rtpUsages)
                         if (PluginSettingState.getInstance(project).isLooking4NativeMapper) {
                             val nativeUsages = findNativeMethod(project, myBatisDmlSql)

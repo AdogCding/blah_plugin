@@ -36,8 +36,8 @@ object MybatisSqlUsageUtils {
      *  e.g. private static final String SQL_ID = "sn+sqlId"
      *       DBUtils.selectList(SQL_ID, ...)
      */
-    fun findMethod(project: Project, toolClassName: String, myBatisDmlSql: MyBatisDmlSql): List<PsiElement> {
-        val res = mutableListOf<PsiElement>()
+    fun findMethodExpression(project: Project, toolClassName: String, myBatisDmlSql: MyBatisDmlSql): List<PsiMethodCallExpression> {
+        val res = mutableListOf<PsiMethodCallExpression>()
         val scope = GlobalSearchScope.allScope(project)
         val psiSearchHelper = PsiSearchHelper.getInstance(project)
         psiSearchHelper.processElementsWithWord({ psiEl, _ ->
