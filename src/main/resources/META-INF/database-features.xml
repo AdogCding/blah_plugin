@@ -14,6 +14,9 @@
                     class="org.gcb.blah.rtp.actions.RtpEntityCodeGenerateAction"
                     text="生成Table的Class代码">
             </action>
+            <action class="org.gcb.blah.stats.actions.FindAllTablesOfMethodAction"
+                    id="org.gcb.blah.stats.actions.FindAllTablesOfMethodAction"
+                    text="查找方法涉及的所有数据库表"/>
         </group>
     </actions>
 </idea-plugin>
